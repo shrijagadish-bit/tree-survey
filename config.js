@@ -1,6 +1,6 @@
 const CONFIG={
- SCRIPT_URL:"https://script.google.com/macros/s/AKfycbwMIgPMGi9kUsGd9CyoGqv3sjAtaIQD7KYwBbantL5JdXIYIjNtpJ2VaShU0kuhmKDE/exec",
- MAX_ACCURACY_M:15,   // GPS must be at least this good (metres) before submit without warning
+ SCRIPT_URL:"https://script.google.com/macros/s/AKfycbwlfDerOLMV955hluU5qI290xo9zYcEHTDNxz7EkvqPTzKVJaRJKwYDSi6f_1dk7SQS/exec",
+ MAX_ACCURACY_M:5,   // GPS must be at least this good (metres) before submit without warning
  RARE_MAX:2,          // species with this many records or fewer are flagged "Rare"
  CENTER:[20.59,78.96],ZOOM:5 // map fits to data once records exist
 };
