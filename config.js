@@ -1,5 +1,5 @@
 const CONFIG={
- SCRIPT_URL:"https://script.google.com/macros/s/AKfycbwlfDerOLMV955hluU5qI290xo9zYcEHTDNxz7EkvqPTzKVJaRJKwYDSi6f_1dk7SQS/exec",
+ SCRIPT_URL:"https://script.google.com/macros/s/AKfycbyTgs9KiUSOMh8BzHIYwPKfkvk5IzodYdc2ne-9erK6i99bei45SdDDnepU8F4UhcYi/exec",
  MAX_ACCURACY_M:5,   // GPS must be at least this good (metres) before submit without warning
  RARE_MAX:2,          // species with this many records or fewer are flagged "Rare"
  CENTER:[20.59,78.96],ZOOM:5 // map fits to data once records exist
