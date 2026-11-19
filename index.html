@@ -5,48 +5,64 @@
 body{font:16px system-ui,sans-serif;margin:auto;padding:12px;max-width:520px;background:var(--bg);color:var(--fg)}
 label{display:block;margin:14px 0 4px;font-weight:600}
 input,select,textarea,button{width:100%;box-sizing:border-box;font:inherit;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg)}
-button{background:var(--g);color:#fff;border:0;margin-top:18px;padding:14px;font-weight:600}
-#gps{padding:10px;border-radius:8px;border:2px solid var(--bd)}
-#gps.ok{border-color:var(--g)}#gps.bad{border-color:#c62828}
+button{background:var(--g);color:#fff;border:0;margin-top:12px;padding:14px;font-weight:600}
+button.sec{background:none;color:var(--fg);border:1px solid var(--bd)}button:disabled{opacity:.4}
+#gps{padding:10px;border-radius:8px;border:2px solid var(--bd)}#gps.ok{border-color:var(--g)}#gps.bad{border-color:#c62828}
 .row label{display:inline;font-weight:400}.row input{width:auto}.hide{display:none}
+.it{padding:10px;border:1px solid var(--bd);border-radius:8px;margin-top:8px}.it.sub{font-style:italic;opacity:.65}
 </style></head><body>
-<h2>🌳 Tree Survey</h2><div id="area" style="font-weight:600;color:var(--g)">Area: …</div>
-<label>Surveyor name</label><input id="who">
-<label>1. Location</label><div id="gps">Waiting for GPS…</div>
-<label>Street</label><select id="street"></select>
-<label>Adjacent site number</label><input id="site" type="number" inputmode="numeric" min="0">
-<label>2. Tree type</label><select id="sp"></select>
-<div id="oth" class="hide"><label>Name / description</label><textarea id="otxt" rows="2" placeholder="Another name, or describe leaves/flowers/fruit"></textarea></div>
-<label>3. Photo</label><input id="ph" type="file" accept="image/*" capture="environment">
-<label>4. Condition (optional)</label>
-<div class="row"><input type="radio" name="c" value="Healthy" id="h"><label for="h">Healthy</label> &nbsp; <input type="radio" name="c" value="Not good" id="n"><label for="n">Not good</label></div>
+<h2>🌳 Tree Survey</h2>
+<div id="v0" class="v"><label>Surveyor</label><select id="who"></select><label>Area</label><select id="area"></select><button id="cont">Continue</button></div>
+<div id="v1" class="v hide"><div id="hdr"></div><button id="add">+ Add entry</button><button id="up" class="sec"></button><p id="msg"></p><h3>My entries</h3><div id="list"></div><button class="sec" id="chg">Change surveyor / area</button></div>
+<div id="s1" class="v hide"><h3>1. Location</h3><div id="gps"></div><button class="sec" id="upd">Update location</button>
+<label>Street</label><select id="street"></select><label>Adjacent site number</label><input id="site" type="number" inputmode="numeric" min="0">
+<button id="n1">Next</button><button class="sec" data-go="v1">Cancel</button></div>
+<div id="s2" class="v hide"><h3>2. Tree type</h3><select id="sp"></select><div id="oth" class="hide"><label>Name / description</label><textarea id="otxt" rows="2" placeholder="Another name, or describe leaves/flowers/fruit"></textarea></div>
+<button id="n2" class="hide" data-go="s3">Next</button><button class="sec" data-go="s1">Back</button></div>
+<div id="s3" class="v hide"><h3>3. Condition (optional)</h3><div class="row"><input type="radio" name="c" value="Healthy" id="h"><label for="h">Healthy</label> &nbsp; <input type="radio" name="c" value="Not good" id="n"><label for="n">Not good</label></div>
 <textarea id="note" rows="2" placeholder="Observations: termites, chopped, under electric wires…" style="margin-top:8px"></textarea>
-<button id="go">Submit</button><p id="msg"></p>
+<button data-go="s4">Next</button><button class="sec" data-go="s2">Back</button></div>
+<div id="s4" class="v hide"><h3>4. Photo (optional)</h3><input id="ph" type="file" accept="image/*" capture="environment"><img id="pv" style="max-width:100%;display:none;margin-top:8px">
+<button id="save">Save Entry</button><button class="sec" data-go="s3">Back</button></div>
 <script src="config.js"></script><script>
-const $=id=>document.getElementById(id),msg=t=>$("msg").textContent=t;
-let best=null,photo="",T=[],queue=JSON.parse(localStorage.q||"[]");
-const save=()=>{try{localStorage.q=JSON.stringify(queue)}catch(e){}};
-fetch("tree_reference.csv").then(r=>r.text()).then(t=>{T=parseCSV(t);$("sp").innerHTML='<option value="">— select —</option>'+T.map((r,i)=>`<option value="${i}">${r[0]} (${r[2]})</option>`).join("")+'<option value="other">Other / not sure</option>'});
-fetch("streets.csv").then(r=>r.text()).then(t=>{$("street").innerHTML='<option value="">— select —</option>'+parseCSV(t).map(r=>`<option>${r[0]}</option>`).join("")});
-$("sp").onchange=()=>$("oth").className=$("sp").value=="other"?"":"hide";
-function show(){const g=$("gps");if(!best){g.textContent="Waiting for GPS…";g.className="";return}
- const ok=best.acc<=CONFIG.MAX_ACCURACY_M;g.className=ok?"ok":"bad";
- g.textContent=`±${Math.round(best.acc)} m  (${best.lat.toFixed(6)}, ${best.lng.toFixed(6)})`+(ok?" ✓ good":" – wait a few seconds / move away from buildings")}
-navigator.geolocation.watchPosition(p=>{const a=p.coords.accuracy;if(!best||a<best.acc)best={lat:p.coords.latitude,lng:p.coords.longitude,acc:a};show()},e=>$("gps").textContent="GPS error: "+e.message+" (allow location access)",{enableHighAccuracy:true,maximumAge:0,timeout:30000});
-$("ph").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const s=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);photo=c.toDataURL("image/jpeg",.7)};im.src=URL.createObjectURL(f)};
-$("go").onclick=()=>{
- const sp=$("sp").value;
- if(!best)return msg("No GPS fix yet");
- if(!$("street").value||$("site").value==="")return msg("Select street and enter site number");
- if(!sp)return msg("Select tree type");
- if(sp=="other"&&!$("otxt").value.trim())return msg("Please describe the tree");
- if(best.acc>CONFIG.MAX_ACCURACY_M&&!confirm(`GPS accuracy is only ±${Math.round(best.acc)} m. Submit anyway?`))return;
- const t=sp=="other"?["Other","",""]:T[sp];
- queue.push({id:Date.now()+"-"+Math.random().toString(36).slice(2,6),time:new Date().toISOString(),surveyor:$("who").value,lat:best.lat,lng:best.lng,accuracy:Math.round(best.acc),street:$("street").value,site:$("site").value,english:t[0],scientific:t[1],kannada:t[2],other:$("otxt").value,condition:(document.querySelector("input[name=c]:checked")||{}).value||"",notes:$("note").value,photo});
- save();
- ["site","otxt","note","ph"].forEach(i=>$(i).value="");$("sp").value="";$("oth").className="hide";document.querySelectorAll("input[name=c]").forEach(r=>r.checked=false);
- photo="";best=null;show();flush()};
-async function flush(){while(queue.length){try{await fetch(CONFIG.SCRIPT_URL,{method:"POST",mode:"no-cors",body:JSON.stringify(queue[0])});queue.shift();save()}catch(e){return msg(`Saved on phone (${queue.length} pending) – will retry when online`)}}msg("✓ Submitted. Move to the next tree.")}
-fetch(CONFIG.SCRIPT_URL+"?info=1").then(r=>r.json()).then(j=>$("area").textContent="Area: "+j.area).catch(()=>$("area").textContent="Area: (not reachable)");
-addEventListener("online",flush);if(queue.length)flush();
+const $=id=>document.getElementById(id),msg=t=>$("msg").textContent=t,q=s=>String(s??"").replace(/[&<>]/g,c=>"&#"+c.charCodeAt(0)+";");
+const L=(k,d)=>JSON.parse(localStorage.getItem(k)||d),S=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){alert("Phone storage is full – upload entries first")}};
+let E=L("entries","[]"),cfg=L("cfg",'{"surveyors":[],"areas":[]}'),me=L("me","{}"),cur=null,best=null,wid=null,T=[],ph="";
+const go=v=>{document.querySelectorAll(".v").forEach(d=>d.classList.toggle("hide",d.id!=v));v=="s1"?(!best&&gps()):stop()};
+document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>b.dataset.go=="v1"?home():go(b.dataset.go));
+const ld=(f,k)=>fetch(f).then(r=>r.text()).then(t=>{S(k,t);return t}).catch(()=>L(k,'""'));
+ld("tree_reference.csv","trees").then(t=>{T=parseCSV(t);$("sp").innerHTML='<option value="">— select —</option>'+T.map((r,i)=>`<option value="${i}">${q(r[0])} (${q(r[2])})</option>`).join("")+'<option value="other">Other / not sure</option>'});
+ld("streets.csv","streets").then(t=>$("street").innerHTML='<option value="">— select —</option>'+parseCSV(t).map(r=>`<option>${q(r[0])}</option>`).join(""));
+const opts=(a,v)=>'<option value="">— select —</option>'+a.map(x=>`<option${x==v?" selected":""}>${q(x)}</option>`).join("");
+fetch(CONFIG.SCRIPT_URL+"?info=1").then(r=>r.json()).then(j=>{cfg=j;S("cfg",j)}).catch(()=>{}).finally(()=>{$("who").innerHTML=opts(cfg.surveyors,me.who);$("area").innerHTML=opts(cfg.areas,me.area);me.who?home():go("v0")});
+$("cont").onclick=()=>{if(!$("who").value||!$("area").value)return alert("Choose surveyor and area");me={who:$("who").value,area:$("area").value};S("me",me);home()};
+$("chg").onclick=()=>go("v0");
+function home(){go("v1");const m=E.filter(e=>e.surveyor==me.who),p=m.filter(e=>e.status!="submitted");
+ $("hdr").innerHTML=`<b>${q(me.who)}</b> · ${q(me.area)}`;$("up").textContent=`Upload ${p.length} pending entr${p.length==1?"y":"ies"}`;$("up").disabled=!p.length;
+ $("list").innerHTML=m.slice().reverse().map(e=>`<div class="it${e.status=="submitted"?" sub":""}" data-i="${e.id}">${q(e.english)}${e.other?" – "+q(e.other):""}<br><small>${q(e.area)}, ${q(e.street)} ${q(e.site)} · ${e.status=="submitted"?"uploaded":"saved – tap to edit"}</small></div>`).join("")||"<i>No entries yet</i>";
+ document.querySelectorAll(".it:not(.sub)").forEach(d=>d.onclick=()=>edit(d.dataset.i))}
+$("add").onclick=()=>{cur={id:Date.now()+"-"+Math.random().toString(36).slice(2,6),surveyor:me.who,area:me.area,status:"saved"};best=null;fillForm()};
+function edit(id){cur={...E.find(x=>x.id==id)};best=cur.lat?{lat:cur.lat,lng:cur.lng,acc:cur.accuracy}:null;fillForm()}
+function fillForm(){const i=T.findIndex(r=>r[0]==cur.english);$("street").value=cur.street||"";$("site").value=cur.site??"";
+ $("sp").value=cur.english=="Other"?"other":i>=0?i:"";$("otxt").value=cur.other||"";sp();
+ document.querySelectorAll("[name=c]").forEach(r=>r.checked=r.value==cur.condition);$("note").value=cur.notes||"";
+ ph=cur.photo||"";$("pv").src=ph;$("pv").style.display=ph?"block":"none";go("s1")}
+function sp(){const v=$("sp").value;$("oth").classList.toggle("hide",v!="other");$("n2").classList.toggle("hide",!v||(v=="other"&&!$("otxt").value.trim()))}
+$("sp").onchange=sp;$("otxt").oninput=sp;
+function show(){const g=$("gps");if(!best){g.textContent="Waiting for GPS…";g.className="";return}const ok=best.acc<=CONFIG.MAX_ACCURACY_M;g.className=ok?"ok":"bad";
+ g.textContent=`±${Math.round(best.acc)} m (${best.lat.toFixed(6)}, ${best.lng.toFixed(6)})`+(ok?" ✓ good":" – move around a little, then press Update location")}
+function gps(){if(wid!=null)return;show();wid=navigator.geolocation.watchPosition(p=>{const a=p.coords.accuracy;if(!best||a<best.acc)best={lat:p.coords.latitude,lng:p.coords.longitude,acc:a};show()},e=>$("gps").textContent="GPS error: "+e.message+" (allow location access)",{enableHighAccuracy:true,maximumAge:0,timeout:30000})}
+function stop(){if(wid!=null){navigator.geolocation.clearWatch(wid);wid=null}}
+$("upd").onclick=()=>{best=null;stop();gps()};
+$("n1").onclick=()=>{if(!best)return alert("No GPS fix yet");if(!$("street").value||$("site").value==="")return alert("Select street and enter site number");
+ if(best.acc>CONFIG.MAX_ACCURACY_M&&!confirm(`GPS accuracy is only ±${Math.round(best.acc)} m. Continue anyway?`))return;go("s2")};
+$("ph").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const s=Math.min(1,800/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);ph=c.toDataURL("image/jpeg",.6);$("pv").src=ph;$("pv").style.display="block"};im.src=URL.createObjectURL(f)};
+$("save").onclick=()=>{const v=$("sp").value,t=v=="other"?["Other","",""]:T[v];
+ Object.assign(cur,{lat:best.lat,lng:best.lng,accuracy:Math.round(best.acc),street:$("street").value,site:$("site").value,english:t[0],scientific:t[1],kannada:t[2],other:v=="other"?$("otxt").value:"",condition:(document.querySelector("[name=c]:checked")||{}).value||"",notes:$("note").value,photo:ph,time:cur.time||new Date().toISOString()});
+ const i=E.findIndex(e=>e.id==cur.id);i<0?E.push(cur):E[i]=cur;S("entries",E);home();msg("✓ Entry saved")};
+$("up").onclick=async()=>{const p=E.filter(e=>e.surveyor==me.who&&e.status!="submitted");let n=0;
+ for(const e of p){msg(`Uploading ${n+1} of ${p.length}…`);
+  try{const r=await(await fetch(CONFIG.SCRIPT_URL,{method:"POST",body:JSON.stringify(e)})).json();if(!r.ok)throw new Error(r.error);e.status="submitted";e.photo="";n++;S("entries",E)}
+  catch(x){home();return msg(`Stopped after ${n} uploaded (${x.message}). Try again when connected.`)}}
+ home();msg(`✓ ${n} uploaded`)};
 </script></body></html>

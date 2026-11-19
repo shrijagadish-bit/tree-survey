@@ -5,7 +5,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script><script src="config.js"></script><script>
 const e=s=>String(s??"").replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";");
 const map=L.map("map").setView(CONFIG.CENTER,CONFIG.ZOOM);
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:19,attribution:"© OpenStreetMap contributors © CARTO"}).addTo(map);
 Promise.all([fetch(CONFIG.SCRIPT_URL+location.search).then(r=>r.json()),fetch("tree_reference.csv").then(r=>r.text())]).then(([j,t])=>{const d=j.records,ar=document.getElementById("ar");
  ar.innerHTML=(j.areas.includes(j.area)?j.areas:[j.area,...j.areas]).map(a=>`<option${a==j.area?" selected":""}>${e(a)}</option>`).join("");ar.onchange=()=>location.search="?area="+encodeURIComponent(ar.value);
  const pts=[],cnt={};
@@ -19,5 +19,5 @@ Promise.all([fetch(CONFIG.SCRIPT_URL+location.search).then(r=>r.json()),fetch("t
  document.getElementById("tot").textContent=`${j.area}: ${d.length} trees · ${$} types recorded`;
  document.getElementById("tb").innerHTML="<tr><th>Species</th><th>Scientific</th><th>Count</th><th>%</th><th></th></tr>"+rows.map(([k,v])=>{
   const tag=k=="Other"?'<span class="tag nil">To identify</span>':!v.n?'<span class="tag nil">Not recorded</span>':named.slice(0,3).some(r=>r[0]==k)?'<span class="tag">Most frequent</span>':v.n<=CONFIG.RARE_MAX?'<span class="tag rare">Rare</span>':"";
-  return `<tr><td>${e(k)}</td><td><i>${e(v.sci)}</i></td><td>${v.n}</td><td>${d.length?Math.round(100*v.n/d.length):0}</td><td>${tag}</td></tr>`}).join("")}).catch(x=>document.getElementById("tot").textContent="Could not load data – check SCRIPT_URL in config.js");
+  return `<tr><td>${e(k)}</td><td><i>${e(v.sci)}</i></td><td>${v.n}</td><td>${d.length?Math.round(100*v.n/d.length):0}</td><td>${tag}</td></tr>`}).join("")}).catch(x=>document.getElementById("tot").textContent="Could not load data: "+x.message+" – open this page from your GitHub Pages link, not as a local file");
 </script></body></html>
