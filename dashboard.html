@@ -22,7 +22,6 @@ Promise.all([fetch(CONFIG.SCRIPT_URL+location.search).then(r=>r.json()),fetch("t
 }).catch(x=>$("tot").textContent="Could not load data: "+x.message+" – open this page from your GitHub Pages link, not as a local file");
 function table(){const st=$("st").value,d=D.filter(r=>!st||r.street==st),cnt={};
  d.forEach(r=>{const k=r.english||"Other",x=cnt[k]=cnt[k]||{n:0,sci:r.scientific};x.n++});
- if(!st)REF.forEach(r=>{if(!cnt[r[0]])cnt[r[0]]={n:0,sci:r[1]}});
  const rows=Object.entries(cnt).sort((a,b)=>b[1].n-a[1].n),top=rows.filter(r=>r[0]!="Other"&&r[1].n).slice(0,3).map(r=>r[0]);
  $("tot").textContent=`${A}${st?" · "+st:""}: ${d.length} trees · ${rows.filter(r=>r[1].n).length} types`;
  $("tb").innerHTML="<tr><th>Species</th><th>Scientific</th><th>Count</th><th>%</th><th></th></tr>"+rows.map(([k,v])=>{

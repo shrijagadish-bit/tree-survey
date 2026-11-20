@@ -63,7 +63,7 @@ $("n3").onclick=()=>{if(!$("note").disabled&&!$("note").value.trim())return aler
 $("ph").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const s=Math.min(1,800/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);ph=c.toDataURL("image/jpeg",.6);$("pv").src=ph;$("pv").style.display="block"};im.src=URL.createObjectURL(f)};
 $("save").onclick=()=>{const v=$("sp").value,t=v=="other"?["Other","",""]:T[v];
  Object.assign(cur,{lat:best.lat,lng:best.lng,accuracy:Math.round(best.acc),street:$("street").value,site:$("site").value,english:t[0],scientific:t[1],kannada:t[2],other:v=="other"?$("otxt").value:"",condition:(document.querySelector("[name=c]:checked")||{}).value||"",notes:$("note").value,photo:ph,time:cur.time||new Date().toISOString()});
- const i=E.findIndex(e=>e.id==cur.id);i<0?E.push(cur):E[i]=cur;S("entries",E);home();msg("✓ Entry saved")};
+ const i=E.findIndex(e=>e.id==cur.id);i<0?E.push(cur):E[i]=cur;S("entries",E);const b=$("save");b.disabled=true;b.textContent="Saving…";setTimeout(()=>{b.disabled=false;b.textContent="Save Entry";home();msg("✓ Entry saved")},1500)};
 $("up").onclick=async()=>{const p=E.filter(e=>e.surveyor==me.who&&e.status!="submitted");let n=0;
  for(const e of p){msg(`Uploading ${n+1} of ${p.length}…`);
   try{const r=await(await fetch(CONFIG.SCRIPT_URL,{method:"POST",body:JSON.stringify(e)})).json();if(!r.ok)throw new Error(r.error);e.status="submitted";e.photo="";n++;S("entries",E)}
