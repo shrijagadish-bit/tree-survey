@@ -1,25 +1,41 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="referrer" content="origin"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tree Survey Dashboard</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
-<style>:root{color-scheme:light dark}body{font:15px system-ui,sans-serif;margin:0}#map{height:55vh}main{padding:12px;max-width:760px;margin:auto}table{border-collapse:collapse;width:100%}td,th{padding:6px;border-bottom:1px solid #8886;text-align:left}.tag{font-size:12px;padding:2px 6px;border-radius:6px;background:#2e7d3240}.rare{background:#c6282840}.nil{background:#8884}</style></head><body>
-<div id="map"></div><main><select id="ar" style="margin-bottom:8px"></select><h2 id="tot">Loading…</h2><div style="overflow-x:auto"><table id="tb"></table></div></main>
+<style>:root{color-scheme:light dark}body{font:15px system-ui,sans-serif;margin:0}main{padding:12px;max-width:760px;margin:auto}
+select,button{font:inherit;padding:8px;border-radius:8px;border:1px solid #8886}button{background:#2e7d32;color:#fff;border:0;font-weight:600}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+#vm{display:none;flex-direction:column;height:100vh;height:100dvh}#vm .bar{padding:8px;margin:0}#map{flex:1}
+table{border-collapse:collapse;width:100%}td,th{padding:6px;border-bottom:1px solid #8886;text-align:left}
+.tag{font-size:12px;padding:2px 6px;border-radius:6px;background:#2e7d3240}.rare{background:#c6282840}.nil{background:#8884}</style></head><body>
+<div id="vt"><main><div class="bar"><select id="ar"></select><select id="st"></select><button id="mb">🗺 Map</button></div>
+<h2 id="tot">Loading…</h2><div style="overflow-x:auto"><table id="tb"></table></div></main></div>
+<div id="vm"><div class="bar"><button id="tbk">← Table</button><select id="sp"></select><span id="cnt"></span><span><span style="color:#2e7d32">●</span> healthy <span style="color:#c62828">●</span> not good <span style="color:#757575">●</span> not recorded</span></div><div id="map"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script><script src="config.js"></script><script>
-const e=s=>String(s??"").replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";");
-const map=L.map("map").setView(CONFIG.CENTER,CONFIG.ZOOM);
-const osm=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(map),
-sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles © Esri"});
-L.control.layers({"Street":osm,"Satellite":sat}).addTo(map);
-Promise.all([fetch(CONFIG.SCRIPT_URL+location.search).then(r=>r.json()),fetch("tree_reference.csv").then(r=>r.text())]).then(([j,t])=>{const d=j.records,ar=document.getElementById("ar");
- ar.innerHTML=(j.areas.includes(j.area)?j.areas:[j.area,...j.areas]).map(a=>`<option${a==j.area?" selected":""}>${e(a)}</option>`).join("");ar.onchange=()=>location.search="?area="+encodeURIComponent(ar.value);
- const pts=[],cnt={};
- d.forEach(r=>{const k=r.english||"Other",c=r.condition=="Healthy"?"#2e7d32":r.condition=="Not good"?"#c62828":"#757575";
-  L.circleMarker([r.lat,r.lng],{radius:8,color:c,fillOpacity:.7}).addTo(map).bindPopup(`<b>${e(k)}</b> <i>${e(r.scientific)}</i><br>${e(r.kannada)}${r.other?"<br>“"+e(r.other)+"”":""}<br>${e(r.street)}, site ${e(r.site)}<br>${e(r.condition)||"–"} ${e(r.notes)}<br>GPS ±${e(r.accuracy)} m${r.photo?`<br><img src="${e(r.photo)}" width="200">`:""}`);
-  pts.push([r.lat,r.lng]);const x=cnt[k]=cnt[k]||{n:0,sci:r.scientific};x.n++});
- if(pts.length)map.fitBounds(pts,{padding:[30,30]});
- parseCSV(t).forEach(r=>{if(!cnt[r[0]])cnt[r[0]]={n:0,sci:r[1]}});
- const rows=Object.entries(cnt).sort((a,b)=>b[1].n-a[1].n),named=rows.filter(r=>r[0]!="Other"&&r[1].n);
- $=rows.filter(r=>r[1].n).length;
- document.getElementById("tot").textContent=`${j.area}: ${d.length} trees · ${$} types recorded`;
- document.getElementById("tb").innerHTML="<tr><th>Species</th><th>Scientific</th><th>Count</th><th>%</th><th></th></tr>"+rows.map(([k,v])=>{
-  const tag=k=="Other"?'<span class="tag nil">To identify</span>':!v.n?'<span class="tag nil">Not recorded</span>':named.slice(0,3).some(r=>r[0]==k)?'<span class="tag">Most frequent</span>':v.n<=CONFIG.RARE_MAX?'<span class="tag rare">Rare</span>':"";
-  return `<tr><td>${e(k)}</td><td><i>${e(v.sci)}</i></td><td>${v.n}</td><td>${d.length?Math.round(100*v.n/d.length):0}</td><td>${tag}</td></tr>`}).join("")}).catch(x=>document.getElementById("tot").textContent="Could not load data: "+x.message+" – open this page from your GitHub Pages link, not as a local file");
+const e=s=>String(s??"").replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";"),$=id=>document.getElementById(id);
+let D=[],REF=[],A="",map,lg;
+Promise.all([fetch(CONFIG.SCRIPT_URL+location.search).then(r=>r.json()),fetch("tree_reference.csv").then(r=>r.text())]).then(([j,t])=>{
+ D=j.records.filter(r=>r.lat!==""&&r.lng!=="");A=j.area;REF=parseCSV(t);
+ $("ar").innerHTML=(j.areas.includes(j.area)?j.areas:[j.area,...j.areas]).map(a=>`<option${a==j.area?" selected":""}>${e(a)}</option>`).join("");
+ $("ar").onchange=()=>location.search="?area="+encodeURIComponent($("ar").value);
+ $("st").innerHTML='<option value="">All streets</option>'+[...new Set(D.map(r=>r.street).filter(Boolean))].sort().map(s=>`<option>${e(s)}</option>`).join("");
+ $("sp").innerHTML='<option value="">All species</option>'+[...new Set(D.map(r=>r.english||"Other"))].sort().map(s=>`<option>${e(s)}</option>`).join("");
+ $("st").onchange=table;$("sp").onchange=draw;table()
+}).catch(x=>$("tot").textContent="Could not load data: "+x.message+" – open this page from your GitHub Pages link, not as a local file");
+function table(){const st=$("st").value,d=D.filter(r=>!st||r.street==st),cnt={};
+ d.forEach(r=>{const k=r.english||"Other",x=cnt[k]=cnt[k]||{n:0,sci:r.scientific};x.n++});
+ if(!st)REF.forEach(r=>{if(!cnt[r[0]])cnt[r[0]]={n:0,sci:r[1]}});
+ const rows=Object.entries(cnt).sort((a,b)=>b[1].n-a[1].n),top=rows.filter(r=>r[0]!="Other"&&r[1].n).slice(0,3).map(r=>r[0]);
+ $("tot").textContent=`${A}${st?" · "+st:""}: ${d.length} trees · ${rows.filter(r=>r[1].n).length} types`;
+ $("tb").innerHTML="<tr><th>Species</th><th>Scientific</th><th>Count</th><th>%</th><th></th></tr>"+rows.map(([k,v])=>{
+  const tag=k=="Other"?'<span class="tag nil">To identify</span>':!v.n?'<span class="tag nil">Not recorded</span>':top.includes(k)?'<span class="tag">Most frequent</span>':v.n<=CONFIG.RARE_MAX?'<span class="tag rare">Rare</span>':"";
+  return `<tr><td>${e(k)}</td><td><i>${e(v.sci)}</i></td><td>${v.n}</td><td>${d.length?Math.round(100*v.n/d.length):0}</td><td>${tag}</td></tr>`}).join("")}
+$("mb").onclick=()=>{$("vt").style.display="none";$("vm").style.display="flex";
+ if(!map){map=L.map("map");const osm=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(map),
+  sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles © Esri"});
+  L.control.layers({"Street":osm,"Satellite":sat}).addTo(map);lg=L.layerGroup().addTo(map)}
+ map.invalidateSize();draw()};
+$("tbk").onclick=()=>{$("vm").style.display="none";$("vt").style.display="block"};
+function draw(){lg.clearLayers();const sp=$("sp").value,pts=[];
+ D.filter(r=>!sp||(r.english||"Other")==sp).forEach(r=>{const c=r.condition=="Healthy"?"#2e7d32":r.condition=="Not good"?"#c62828":"#757575";
+  L.circleMarker([r.lat,r.lng],{radius:8,color:c,fillOpacity:.7}).addTo(lg).bindPopup(`<b>${e(r.english||"Other")}</b> <i>${e(r.scientific)}</i><br>${e(r.kannada)}${r.other?"<br>“"+e(r.other)+"”":""}<br>${e(r.street)}, site ${e(r.site)}<br>${e(r.condition)||"–"} ${e(r.notes)}<br>GPS ±${e(r.accuracy)} m${r.photo?`<br><img src="${e(r.photo)}" width="200">`:""}`);pts.push([r.lat,r.lng])});
+ $("cnt").textContent=pts.length+" trees";pts.length?map.fitBounds(pts,{padding:[30,30],maxZoom:18}):map.setView(CONFIG.CENTER,CONFIG.ZOOM)}
 </script></body></html>
