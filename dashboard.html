@@ -1,11 +1,13 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tree Survey Dashboard</title>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="referrer" content="origin"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tree Survey Dashboard</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>:root{color-scheme:light dark}body{font:15px system-ui,sans-serif;margin:0}#map{height:55vh}main{padding:12px;max-width:760px;margin:auto}table{border-collapse:collapse;width:100%}td,th{padding:6px;border-bottom:1px solid #8886;text-align:left}.tag{font-size:12px;padding:2px 6px;border-radius:6px;background:#2e7d3240}.rare{background:#c6282840}.nil{background:#8884}</style></head><body>
 <div id="map"></div><main><select id="ar" style="margin-bottom:8px"></select><h2 id="tot">Loading…</h2><div style="overflow-x:auto"><table id="tb"></table></div></main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script><script src="config.js"></script><script>
 const e=s=>String(s??"").replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";");
 const map=L.map("map").setView(CONFIG.CENTER,CONFIG.ZOOM);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:19,attribution:"© OpenStreetMap contributors © CARTO"}).addTo(map);
+const osm=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(map),
+sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles © Esri"});
+L.control.layers({"Street":osm,"Satellite":sat}).addTo(map);
 Promise.all([fetch(CONFIG.SCRIPT_URL+location.search).then(r=>r.json()),fetch("tree_reference.csv").then(r=>r.text())]).then(([j,t])=>{const d=j.records,ar=document.getElementById("ar");
  ar.innerHTML=(j.areas.includes(j.area)?j.areas:[j.area,...j.areas]).map(a=>`<option${a==j.area?" selected":""}>${e(a)}</option>`).join("");ar.onchange=()=>location.search="?area="+encodeURIComponent(ar.value);
  const pts=[],cnt={};
